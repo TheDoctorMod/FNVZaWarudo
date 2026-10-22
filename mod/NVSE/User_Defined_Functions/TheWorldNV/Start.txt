@@ -1,0 +1,105 @@
+Begin Function {}
+	if Player.AuxVarGetFlt "*_TWNV_Active"
+		Return
+	endif
+	if (Player.AuxVarGetFlt "*_TWNV_State") != (Player.AuxVarGetFlt "*_TWNV_STATE_READY")
+		Return
+	endif
+
+	float fStartingAP = Player.GetAV ActionPoints
+	if (Player.AuxVarGetFlt "*_TWNV_Unlimited") == 0 && fStartingAP <= 0
+		Return
+	endif
+
+	; The native interceptor is what prevents Actor::HitMe from exposing health,
+	; limb damage, death, XP, and hit notifications while time is stopped.
+	if GetPluginVersion "TheWorldNV" < 6
+		Print "The World NV: updated TheWorldNV.dll v6 is required."
+		Return
+	endif
+
+	; Do not take ownership of a time freeze started by another mod.
+	if FreezeTime
+		Print "The World NV: time is already frozen by another source."
+		Return
+	endif
+
+	ref rActiveIMOD = Player.AuxVarGetRef "*_TWNV_IMOD"
+	if GetType rActiveIMOD != 84
+		ref rIMODTemplate = EditorIDToFormID "PipBackgroundFX"
+		if GetType rIMODTemplate == 84
+			; Do not inherit this runtime script's FF mod index. CompileScript UDFs
+			; also use FF IDs, and an inherited clone can overwrite their form map entry.
+			rActiveIMOD = TempCloneForm rIMODTemplate
+			Player.AuxVarSetRef "*_TWNV_IMOD" rActiveIMOD
+		endif
+	endif
+
+	; Refresh the filter on every activation so INI changes apply immediately.
+	if GetType rActiveIMOD == 84
+		SetImageSpaceModTrait rActiveIMOD 0 0
+		SetImageSpaceModTrait rActiveIMOD 37 (GetINIFloat "Visuals:fSaturationMultiplier" "TheWorldNV.ini")
+		SetImageSpaceModTrait rActiveIMOD 38 0
+		SetImageSpaceModTrait rActiveIMOD 39 (GetINIFloat "Visuals:fContrastMultiplier" "TheWorldNV.ini")
+		SetImageSpaceModTrait rActiveIMOD 40 0
+		SetImageSpaceModTrait rActiveIMOD 45 (GetINIFloat "Visuals:fBlurRadius" "TheWorldNV.ini")
+		SetImageSpaceModTrait rActiveIMOD 46 (GetINIFloat "Visuals:fDoubleVision" "TheWorldNV.ini")
+		SetImageSpaceModTrait rActiveIMOD 55 (GetINIFloat "Visuals:fRadialBlur" "TheWorldNV.ini")
+		SetImageSpaceModTrait rActiveIMOD 56 0
+		SetImageSpaceModTrait rActiveIMOD 57 0
+		SetImageSpaceModTrait rActiveIMOD 58 0
+		SetImageSpaceModTrait rActiveIMOD 59 0
+		SetImageSpaceModTrait rActiveIMOD 64 0
+	endif
+
+	if GetINIFloat "Audio:bEnableAudio" "TheWorldNV.ini"
+		if GetINIFloat "Audio:bUseCustomAudio" "TheWorldNV.ini" && GetPluginVersion "JohnnyGuitarNVSE" >= 517
+			string_var sStartPath = GetINIString "Voice:sActivationPath" "TheWorldNVVoice.ini"
+			Player.RunScriptSnippet 0 "PlaySoundFromPath %q%z%q 0 0 1 0" sStartPath
+			Sv_Destruct sStartPath
+		elseif GetINIFloat "Audio:bUseCustomAudio" "TheWorldNV.ini"
+			; PlaySoundFile is a music/media-stream command, not a reliable SFX path
+			; player. Use a runtime Sound form so PCM WAVs go through game audio.
+			ref rStartSound = Player.AuxVarGetRef "*_TWNV_StartSound"
+			if IsFormValid rStartSound == 0
+				ref rStartSoundTemplate = EditorIDToFormID "UIVATSEnter"
+				if IsFormValid rStartSoundTemplate
+					; Let TempCloneForm allocate its normal clone ID. Inheriting this UDF's
+					; FF index can collide with another cached runtime function script.
+					rStartSound = TempCloneForm rStartSoundTemplate
+					Player.AuxVarSetRef "*_TWNV_StartSound" rStartSound
+				endif
+			endif
+			if IsFormValid rStartSound
+				string_var sStartSoundFile = GetINIString "Voice:sActivationSoundFile" "TheWorldNVVoice.ini"
+				; JIP Script Runner requires a parenthesized inline expression when
+				; passing a string_var to a command that expects a path string.
+				SetSoundSourceFile rStartSound (sStartSoundFile)
+				Sv_Destruct sStartSoundFile
+				PlaySound rStartSound 1
+			else
+				PlaySound (EditorIDToFormID "UIVATSEnter") 1
+			endif
+		else
+			PlaySound (EditorIDToFormID "UIVATSEnter") 1
+		endif
+	endif
+
+	Player.AuxVarSetFlt "*_TWNV_Active" 1
+	Player.AuxVarSetFlt "*_TWNV_State" (Player.AuxVarGetFlt "*_TWNV_STATE_ACTIVE")
+	Player.AuxVarErase "*_TWNV_CooldownUntil"
+	Player.AuxVarErase "*_TWNV_ActiveElapsed"
+	Player.AuxVarErase "*_TWNV_ActiveLastUpdate"
+	Player.AuxVarErase "*_TWNV_APRemaining"
+	Player.AuxVarErase "*_TWNV_ActivationStarted"
+	SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVProgress" 0
+
+	float fActivationDelay = GetINIFloat "Voice:fActivationDelaySeconds" "TheWorldNVVoice.ini"
+	if fActivationDelay < 0
+		fActivationDelay = 0
+	endif
+	; Phase 0 plays in normal time. The ring, perception suppression, projectile
+	; interception, AP budget, and exact world freeze begin together afterward.
+	Player.AuxVarSetFlt "*_TWNV_Phase" 0
+	Player.AuxVarSetFlt "*_TWNV_ActivationDelayUntil" ((GetTimePlayed 1) + fActivationDelay)
+End

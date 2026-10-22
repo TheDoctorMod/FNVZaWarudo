@@ -1,0 +1,10 @@
+Begin Function {}
+	if Player.AuxVarGetFlt "*_TWNV_WaitingForHitReplay" == 0
+		Return
+	endif
+
+	; This handler and HitsReplayed surround the native HitMe continuations in
+	; one synchronous main-loop callback. Detection is normal only while combat,
+	; crime, and witness systems attribute those attacks to Player.
+	Player.ForceActorDetectionValue 0
+End

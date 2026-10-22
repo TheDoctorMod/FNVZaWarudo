@@ -1,0 +1,92 @@
+Begin Function {int bPlayEffects}
+	if Player.AuxVarGetFlt "*_TWNV_Active" == 0
+		Return
+	endif
+
+	; Restore perception, controls, and audio before actors update again.
+	; A normal H resume retains brief post-freeze concealment; safety cleanup does not.
+	Call (CompileScript "TheWorldNV\RestoreWorld.txt") bPlayEffects
+	SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVProgress" 0
+	Player.AuxVarErase "*_TWNV_ActivationStarted"
+	Player.AuxVarErase "*_TWNV_ActivationDelayUntil"
+
+	; Remove our visual at the beginning of the resume cue, as before.
+	ref rActiveIMOD = Player.AuxVarGetRef "*_TWNV_IMOD"
+	if IsFormValid rActiveIMOD
+		rimod rActiveIMOD
+	endif
+
+	; Do not let the activation cue continue after time resumes or a safety cancel.
+	if GetINIFloat "Audio:bEnableAudio" "TheWorldNV.ini" && GetINIFloat "Audio:bUseCustomAudio" "TheWorldNV.ini"
+		if GetPluginVersion "JohnnyGuitarNVSE" >= 517
+			string_var sActivePath = GetINIString "Voice:sActivationPath" "TheWorldNVVoice.ini"
+			Player.RunScriptSnippet 0 "StopSoundFromPath %q%z%q 0" sActivePath
+			Sv_Destruct sActivePath
+		else
+			ref rStartSound = Player.AuxVarGetRef "*_TWNV_StartSound"
+			if IsFormValid rStartSound
+				StopSound rStartSound
+			endif
+		endif
+	endif
+
+	; Safety cleanup is immediate and silent. Its pending attacks must not retain
+	; raw engine pointers across a lifecycle boundary.
+	if bPlayEffects == 0
+		DispatchEvent "TheWorldNV:DiscardHitQueue"
+		if FreezeTime
+			FreezeTime 0
+		endif
+		Player.AuxVarSetFlt "*_TWNV_Active" 0
+		Player.AuxVarErase "*_TWNV_Phase"
+		Call (CompileScript "TheWorldNV\BeginCooldown.txt")
+		Return
+	endif
+
+	; Disarm interception before unfreezing. The DLL replays the complete
+	; engine-owned hit transactions on the following main-loop tick.
+	DispatchEvent "TheWorldNV:ReleaseHitQueue"
+	if FreezeTime
+		FreezeTime 0
+	endif
+
+	if GetINIFloat "Visuals:bEnableVisuals" "TheWorldNV.ini" && GetINIFloat "Visuals:bEnableResumeFlash" "TheWorldNV.ini"
+		ref rFlashIMOD = EditorIDToFormID "CGCameraFlashISFX"
+		if GetType rFlashIMOD == 84
+			imod rFlashIMOD
+		endif
+	endif
+
+	if GetINIFloat "Audio:bEnableAudio" "TheWorldNV.ini"
+		if GetINIFloat "Audio:bUseCustomAudio" "TheWorldNV.ini" && GetPluginVersion "JohnnyGuitarNVSE" >= 517
+			string_var sStopPath = GetINIString "Audio:sResumePath" "TheWorldNV.ini"
+			Player.RunScriptSnippet 0 "PlaySoundFromPath %q%z%q 0 0 1 0" sStopPath
+			Sv_Destruct sStopPath
+		elseif GetINIFloat "Audio:bUseCustomAudio" "TheWorldNV.ini"
+			ref rStopSound = Player.AuxVarGetRef "*_TWNV_StopSound"
+			if IsFormValid rStopSound == 0
+				ref rStopSoundTemplate = EditorIDToFormID "UIVATSExit"
+				if IsFormValid rStopSoundTemplate
+					; Runtime UDF IDs share the FF range. Do not force the sound clone to
+					; inherit this script's mod index and overwrite a cached UDF form ID.
+					rStopSound = TempCloneForm rStopSoundTemplate
+					Player.AuxVarSetRef "*_TWNV_StopSound" rStopSound
+				endif
+			endif
+			if IsFormValid rStopSound
+				string_var sStopSoundFile = GetINIString "Audio:sResumeSoundFile" "TheWorldNV.ini"
+				SetSoundSourceFile rStopSound (sStopSoundFile)
+				Sv_Destruct sStopSoundFile
+				PlaySound rStopSound 1
+			else
+				PlaySound (EditorIDToFormID "UIVATSExit") 1
+			endif
+		else
+			PlaySound (EditorIDToFormID "UIVATSExit") 1
+		endif
+	endif
+
+	Player.AuxVarSetFlt "*_TWNV_Active" 0
+	Player.AuxVarErase "*_TWNV_Phase"
+	Call (CompileScript "TheWorldNV\BeginCooldown.txt")
+End

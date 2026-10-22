@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+  <moduleName>THE WORLD - ZA WARUDO (Time Stop)</moduleName>
+  <moduleImage path="fomod\images\no_voice.png" />
+  <requiredInstallFiles>
+    <folder source="00 Core" destination="." priority="0" />
+  </requiredInstallFiles>
+  <installSteps order="Explicit">
+    <installStep name="Choose Your Voice">
+      <optionalFileGroups order="Explicit">
+        <group name="Voice" type="SelectExactlyOne">
+          <plugins order="Explicit">
+            <plugin name="No Voice (Instant)">
+              <description>No spoken activation line and no pre-freeze delay. The time-stop and resume sound effects remain enabled.</description>
+              <image path="fomod\images\no_voice.png" />
+              <files>
+                <folder source="10 Voice\No Voice" destination="." priority="10" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+            <plugin name="DIO Brando">
+              <description>Uses dio_activation.wav as the complete activation cue. The shared time-stop and resume effects remain unchanged.</description>
+              <image path="fomod\images\dio_brando.png" />
+              <files>
+                <folder source="10 Voice\DIO Brando" destination="." priority="10" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+            <plugin name="Jotaro Kujo">
+              <description>Uses jotaro_activation.wav as the complete activation cue. The shared time-stop and resume effects remain unchanged.</description>
+              <image path="fomod\images\jotaro_kujo.png" />
+              <files>
+                <folder source="10 Voice\Jotaro Kujo" destination="." priority="10" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+    <installStep name="Gameplay Settings">
+      <optionalFileGroups order="Explicit">
+        <group name="Gameplay Preset" type="SelectExactlyOne">
+          <plugins order="Explicit">
+            <plugin name="Recommended">
+              <description>The intended balanced experience. Powerful time stop with limited duration and resource consumption. Maximum 10 seconds, 12 AP per second, 20-second cooldown, AP regeneration disabled, and manual early deactivation enabled.</description>
+              <files>
+                <folder source="20 Gameplay\Recommended" destination="." priority="20" />
+              </files>
+              <typeDescriptor><type name="Recommended" /></typeDescriptor>
+            </plugin>
+            <plugin name="Challenging">
+              <description>Shorter time stops, higher AP consumption, and longer recovery. Intended for players seeking a greater challenge. Maximum 5 seconds, 18 AP per second, 30-second cooldown, AP regeneration disabled, and manual early deactivation enabled.</description>
+              <files>
+                <folder source="20 Gameplay\Challenging" destination="." priority="20" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+            <plugin name="Extended">
+              <description>Longer time stops, reduced AP consumption, and shorter recovery. A more powerful experience. Maximum 20 seconds, 6 AP per second, 10-second cooldown, AP regeneration disabled, and manual early deactivation enabled.</description>
+              <files>
+                <folder source="20 Gameplay\Extended" destination="." priority="20" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+            <plugin name="Unlimited">
+              <description>Unrestricted time stop. Activate and deactivate whenever you want, with no duration, AP cost, or cooldown. Timer, resource restrictions, AP-regeneration restriction, and automatic expiration are explicitly disabled.</description>
+              <files>
+                <folder source="20 Gameplay\Unlimited" destination="." priority="20" />
+              </files>
+              <typeDescriptor><type name="Optional" /></typeDescriptor>
+            </plugin>
+          </plugins>
+        </group>
+      </optionalFileGroups>
+    </installStep>
+  </installSteps>
+</config>

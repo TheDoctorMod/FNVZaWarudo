@@ -1,0 +1,53 @@
+Begin Function {}
+	if Player.AuxVarGetFlt "*_TWNV_WorldFrozen"
+		Return
+	endif
+	Player.AuxVarErase "*_TWNV_WaitingForHitReplay"
+
+	; FreezeTime stops AI execution, while this prevents the detection service
+	; from updating observers with the player's new position in the meantime.
+	if GetINIFloat "Perception:bSuppressPlayerDetection" "TheWorldNV.ini"
+		; Preserve actors that were already focused on the player. They will search
+		; for that vanished target instead of selecting unrelated nearby actors.
+		Call (CompileScript "TheWorldNV\LockCombatTargets.txt")
+		Player.ForceActorDetectionValue -10000
+		Player.AuxVarSetFlt "*_TWNV_DetectionSuppressed" 1
+		Player.AuxVarErase "*_TWNV_DetectionGraceUntil"
+	endif
+
+	; Sleeping, waiting, and fast travel would advance or stream the world around
+	; the session-persistent FreezeTime state. xNVSE stores these controls per mod.
+	DisablePlayerControlsAltEx 28672
+	Player.AuxVarSetFlt "*_TWNV_TravelControlsDisabled" 1
+
+	; Frozen actors cannot answer the player. Disable manual interaction for both
+	; runtime actor reference types, but remember pre-existing locks owned by
+	; another mod so restoration never enables something we did not disable.
+	if (GetInteractionDisabledType 59) == 0
+		SetInteractionDisabledType 1 59
+		Player.AuxVarSetFlt "*_TWNV_CharacterInteractionBlocked" 1
+	endif
+	if (GetInteractionDisabledType 60) == 0
+		SetInteractionDisabledType 1 60
+		Player.AuxVarSetFlt "*_TWNV_CreatureInteractionBlocked" 1
+	endif
+
+	if GetINIFloat "Audio:bFreezeWorldAudio" "TheWorldNV.ini"
+		Player.AuxVarSetFlt "*_TWNV_VoiceVolume" (GetGameVolume 2)
+		Player.AuxVarSetFlt "*_TWNV_MusicVolume" (GetGameVolume 4)
+		Player.AuxVarSetFlt "*_TWNV_RadioVolume" (GetGameVolume 5)
+
+		if IsMusicPlaying == 2
+			SetMusicState 1
+			Player.AuxVarSetFlt "*_TWNV_MusicPaused" 1
+		endif
+
+		; JIP exposes category volume but no pause cursor for voice or radio.
+		; Muting leaves dialogue/quest state untouched and is safely reversible.
+		SetGameVolume 2 0
+		SetGameVolume 5 0
+		Player.AuxVarSetFlt "*_TWNV_AudioFrozen" 1
+	endif
+
+	Player.AuxVarSetFlt "*_TWNV_WorldFrozen" 1
+End

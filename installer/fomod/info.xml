@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fomod>
+  <Name>THE WORLD - ZA WARUDO (Time Stop)</Name>
+  <Version>1.0.0</Version>
+  <Author>TheDoctorDev</Author>
+  <Website>https://www.nexusmods.com/newvegas/mods/100133</Website>
+  <Description>Stop time itself in Fallout: New Vegas! Freeze enemies, suspend bullets in mid-air, and unleash everything when time resumes. Inspired by JoJo's Bizarre Adventure, featuring iconic visual effects, optional DIO and Jotaro voices, and customizable gameplay presets.</Description>
+  <Groups>
+    <element>Gameplay</element>
+  </Groups>
+</fomod>

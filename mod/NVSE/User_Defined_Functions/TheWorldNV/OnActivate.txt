@@ -1,0 +1,9 @@
+Begin Function {ref rActivated, ref rActionRef}
+	if rActionRef == Player && Player.AuxVarGetFlt "*_TWNV_Active"
+		if GetINIFloat "Safety:bCancelBeforeLoadDoors" "TheWorldNV.ini" && rActivated.IsLoadDoor
+			; OnActivate fires before the door performs its normal activation.
+			; This is a safety boundary, so queued raw hit pointers are discarded.
+			Call (CompileScript "TheWorldNV\Stop.txt") 0
+		endif
+	endif
+End

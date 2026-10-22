@@ -1,0 +1,16 @@
+ACTIVATION AUDIO OPTIONS
+
+Each installer option selects one complete activation cue:
+
+No Voice:
+  Data\Sound\fx\TheWorldNV\active.wav
+
+DIO Brando:
+  Data\Sound\fx\TheWorldNV\dio_activation.wav
+
+Jotaro Kujo:
+  Data\Sound\fx\TheWorldNV\jotaro_activation.wav
+
+The cues are mutually exclusive and are not layered. The original active.wav is used only by No Voice. The shared resume.wav cue and unrelated gameplay audio are unchanged.
+
+Only redistribute recordings for which you have the necessary permission.

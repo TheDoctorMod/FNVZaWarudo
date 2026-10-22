@@ -1,0 +1,26 @@
+Begin Function {}
+	; Remove only locks previously owned by this mod before collecting a new set.
+	Call (CompileScript "TheWorldNV\UnlockCombatTargets.txt")
+
+	array_var aLocked = ar_construct "array"
+	; GetCombatTargets only contains actors whose current selected target is
+	; already Player. A witness can correctly enter combat with Player because of
+	; a replayed hit yet momentarily select another nearby actor. Search every
+	; high-process actor and use the combat relationship instead of current aim.
+	array_var aTargets = GetActorsByProcessingLevel 0
+	foreach array_var aEntry <- aTargets
+		ref rActor = *aEntry
+		if IsFormValid rActor && rActor != Player && rActor.GetDead == 0
+			; SetCombatDisabled with a target does not disable combat: JIP uses the
+			; optional actor to lock this actor's combat target.
+			if rActor.IsInCombatWith Player && rActor.GetCombatDisabled == 0
+				rActor.SetCombatDisabled 1 Player
+				Ar_Append aLocked rActor
+			endif
+		endif
+	loop
+
+	Player.AuxVarSetFromArr "*_TWNV_LockedTargets" aLocked
+	aLocked = ar_null
+	aTargets = ar_null
+End

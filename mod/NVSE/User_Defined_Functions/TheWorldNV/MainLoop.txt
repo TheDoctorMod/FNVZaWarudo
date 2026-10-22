@@ -1,0 +1,227 @@
+Begin Function {}
+	; JIP documents a crash if FreezeTime is cleared inside the LoadGame event.
+	; Wait several ordinary frames before doing any post-load restoration.
+	if GetGameLoaded
+		; Never carry raw engine hit pointers across a load. FreezeTime itself is
+		; deliberately left for the delayed cleanup below.
+		DispatchEvent "TheWorldNV:DiscardHitQueue"
+		Player.AuxVarSetFlt "*_TWNV_LoadGuard" 4
+		Player.AuxVarSetFlt "*_TWNV_KeyDown" 1
+		Return
+	endif
+
+	int iLoadGuard = Player.AuxVarGetFlt "*_TWNV_LoadGuard"
+	if iLoadGuard > 0
+		iLoadGuard -= 1
+		Player.AuxVarSetFlt "*_TWNV_LoadGuard" iLoadGuard
+		if iLoadGuard == 0
+			if Player.AuxVarGetFlt "*_TWNV_Active"
+				Call (CompileScript "TheWorldNV\Stop.txt") 0
+			else
+				Call (CompileScript "TheWorldNV\RestoreWorld.txt") 0
+			endif
+			Player.AuxVarErase "*_TWNV_IMOD"
+		endif
+		Return
+	endif
+
+	; End the post-resume stealth window using real session time. This runs even
+	; while a menu is open so the override cannot become permanent.
+	float fDetectionGraceUntil = Player.AuxVarGetFlt "*_TWNV_DetectionGraceUntil"
+	if fDetectionGraceUntil > 0 && (GetTimePlayed 1) >= fDetectionGraceUntil
+		Player.ForceActorDetectionValue 0
+		Player.AuxVarErase "*_TWNV_DetectionSuppressed"
+		Player.AuxVarErase "*_TWNV_DetectionGraceUntil"
+		Call (CompileScript "TheWorldNV\UnlockCombatTargets.txt")
+	endif
+
+	; Cooldown uses session real time and never touches AP regeneration.
+	int iState = Player.AuxVarGetFlt "*_TWNV_State"
+	if iState == (Player.AuxVarGetFlt "*_TWNV_STATE_COOLDOWN")
+		if (GetTimePlayed 1) >= (Player.AuxVarGetFlt "*_TWNV_CooldownUntil")
+			Player.AuxVarSetFlt "*_TWNV_State" (Player.AuxVarGetFlt "*_TWNV_STATE_READY")
+			Player.AuxVarErase "*_TWNV_CooldownUntil"
+			iState = Player.AuxVarGetFlt "*_TWNV_STATE_READY"
+		endif
+	endif
+
+	int iHotkey = GetINIFloat "General:iHotkey" "TheWorldNV.ini"
+	if iHotkey < 1 || iHotkey > 255
+		iHotkey = 35
+	endif
+
+	int bKeyDown = IsKeyPressed iHotkey
+	int bWasKeyDown = Player.AuxVarGetFlt "*_TWNV_KeyDown"
+
+	; Safety cleanup must run even when a death/loading menu has opened.
+	if Player.AuxVarGetFlt "*_TWNV_Active"
+		if GetINIFloat "Safety:bCancelOnDeath" "TheWorldNV.ini" && Player.GetDead
+			Call (CompileScript "TheWorldNV\Stop.txt") 0
+			Return
+		endif
+
+	endif
+
+	; Ignore activation while any menu is open and absorb the current key state.
+	if MenuMode > 0
+		; Active duration and AP drain pause with gameplay. Reset the real-time
+		; sample so closing a menu cannot charge for time spent inside it.
+		if Player.AuxVarGetFlt "*_TWNV_Active"
+			Player.AuxVarSetFlt "*_TWNV_ActiveLastUpdate" (GetTimePlayed 1)
+		endif
+		Player.AuxVarSetFlt "*_TWNV_KeyDown" bKeyDown
+		Return
+	endif
+
+	int iPhase = Player.AuxVarGetFlt "*_TWNV_Phase"
+	if bKeyDown && bWasKeyDown == 0
+		if Player.AuxVarGetFlt "*_TWNV_Active"
+			; A second press during the voice delay cancels activation without
+			; pretending that frozen time has already resumed.
+			if iPhase == 0
+				Call (CompileScript "TheWorldNV\Stop.txt") 0
+			else
+				Call (CompileScript "TheWorldNV\Stop.txt") 1
+			endif
+		else
+			if Player.GetDead == 0 && iState == (Player.AuxVarGetFlt "*_TWNV_STATE_READY")
+				Call (CompileScript "TheWorldNV\Start.txt")
+			endif
+		endif
+	endif
+	Player.AuxVarSetFlt "*_TWNV_KeyDown" bKeyDown
+
+	if Player.AuxVarGetFlt "*_TWNV_Active" == 0
+		Return
+	endif
+
+	iPhase = Player.AuxVarGetFlt "*_TWNV_Phase"
+	; Phase 0 is the normal-time voice lead-in. Only after it expires do the HUD
+	; ring, perception suppression, deferred-hit queue, and world freeze begin.
+	if iPhase == 0
+		if (GetTimePlayed 1) < (Player.AuxVarGetFlt "*_TWNV_ActivationDelayUntil")
+			Return
+		endif
+		Player.AuxVarErase "*_TWNV_ActivationDelayUntil"
+
+		float fStartingAP = Player.GetAV ActionPoints
+		if (Player.AuxVarGetFlt "*_TWNV_Unlimited") == 0 && fStartingAP <= 0
+			Call (CompileScript "TheWorldNV\Stop.txt") 0
+			Return
+		endif
+		Player.AuxVarSetFlt "*_TWNV_ActiveElapsed" 0
+		Player.AuxVarSetFlt "*_TWNV_ActiveLastUpdate" (GetTimePlayed 1)
+		if (Player.AuxVarGetFlt "*_TWNV_Unlimited") == 0
+			Player.AuxVarSetFlt "*_TWNV_APRemaining" fStartingAP
+		endif
+
+		int bPlayActivationRing = 0
+		if GetINIFloat "Visuals:bEnableVisuals" "TheWorldNV.ini"
+			if GetINIFloat "Visuals:bEnableActivationFlash" "TheWorldNV.ini"
+				ref rDelayFlashIMOD = EditorIDToFormID "CGCameraFlashISFX"
+				if GetType rDelayFlashIMOD == 84
+					imod rDelayFlashIMOD
+				endif
+			endif
+			if GetINIFloat "Visuals:bEnableActivationRing" "TheWorldNV.ini" && (GetINIFloat "Visuals:fActivationRingSeconds" "TheWorldNV.ini") > 0
+				bPlayActivationRing = 1
+				SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVAlpha" (GetINIFloat "Visuals:fActivationRingAlpha" "TheWorldNV.ini")
+				SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVProgress" 0.001
+			else
+				ref rDelayIMOD = Player.AuxVarGetRef "*_TWNV_IMOD"
+				if GetType rDelayIMOD == 84
+					imod rDelayIMOD
+				endif
+			endif
+		endif
+
+		if bPlayActivationRing
+			Player.AuxVarSetFlt "*_TWNV_Phase" 1
+			Player.AuxVarSetFlt "*_TWNV_ActivationStarted" (GetTimePlayed 1)
+		else
+			Player.AuxVarSetFlt "*_TWNV_Phase" 2
+		endif
+
+		; Never change the global time multiplier: FreezeTime suspends the world
+		; while preserving the player's normal movement speed.
+		Call (CompileScript "TheWorldNV\FreezeWorld.txt")
+		DispatchEvent "TheWorldNV:FreezeHitQueue"
+		FreezeTime 1
+		Return
+	endif
+
+	; Both post-delay phases own the exact freeze. Phase 1 drives the expanding
+	; HUD wave; when it reaches the screen edge, reveal the inversion-like IMOD
+	; and enter the normal frozen phase.
+	if (iPhase != 1 && iPhase != 2) || FreezeTime == 0
+		Call (CompileScript "TheWorldNV\Stop.txt") 0
+		Return
+	endif
+
+	; Unlimited is a real manual-toggle mode: no duration, AP, regeneration, or
+	; cooldown accounting is performed.
+	if Player.AuxVarGetFlt "*_TWNV_Unlimited"
+		Player.AuxVarSetFlt "*_TWNV_ActiveLastUpdate" (GetTimePlayed 1)
+	else
+	; Real-time active budget. APRemaining is an authoritative ceiling: natural
+	; regeneration may run inside the engine, but any amount above this ceiling
+	; is removed together with the selected AP/s drain. Existing external AP
+	; costs are preserved by lowering the ceiling when current AP is already less.
+	float fNow = GetTimePlayed 1
+	float fLastUpdate = Player.AuxVarGetFlt "*_TWNV_ActiveLastUpdate"
+	float fDelta = fNow - fLastUpdate
+	if fDelta < 0
+		fDelta = 0
+	endif
+	Player.AuxVarSetFlt "*_TWNV_ActiveLastUpdate" fNow
+
+	float fElapsed = (Player.AuxVarGetFlt "*_TWNV_ActiveElapsed") + fDelta
+	Player.AuxVarSetFlt "*_TWNV_ActiveElapsed" fElapsed
+
+	float fCurrentAP = Player.GetAV ActionPoints
+	float fRemainingAP = Player.AuxVarGetFlt "*_TWNV_APRemaining"
+	if fCurrentAP < fRemainingAP
+		fRemainingAP = fCurrentAP
+	endif
+	fRemainingAP -= (fDelta * (Player.AuxVarGetFlt "*_TWNV_AP_DRAIN_PER_SECOND"))
+	if fRemainingAP < 0
+		fRemainingAP = 0
+	endif
+	if Player.AuxVarGetFlt "*_TWNV_DISABLE_AP_REGEN"
+		if fCurrentAP > fRemainingAP
+			Player.DamageAV ActionPoints (fCurrentAP - fRemainingAP)
+		endif
+	elseif (Player.AuxVarGetFlt "*_TWNV_AP_DRAIN_PER_SECOND") > 0
+		Player.DamageAV ActionPoints (fDelta * (Player.AuxVarGetFlt "*_TWNV_AP_DRAIN_PER_SECOND"))
+	endif
+	Player.AuxVarSetFlt "*_TWNV_APRemaining" fRemainingAP
+
+	if fRemainingAP <= 0 || fElapsed >= (Player.AuxVarGetFlt "*_TWNV_MAX_TIME_STOP_DURATION")
+		Call (CompileScript "TheWorldNV\Stop.txt") 1
+		Return
+	endif
+	endif
+
+	if iPhase == 1
+		float fRingSeconds = GetINIFloat "Visuals:fActivationRingSeconds" "TheWorldNV.ini"
+		float fRingProgress = 1
+		if fRingSeconds > 0
+			fRingProgress = ((GetTimePlayed 1) - (Player.AuxVarGetFlt "*_TWNV_ActivationStarted")) / fRingSeconds
+		endif
+
+		if fRingProgress >= 1
+			SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVProgress" 0
+			ref rActiveIMOD = Player.AuxVarGetRef "*_TWNV_IMOD"
+			if GetType rActiveIMOD == 84
+				imod rActiveIMOD
+			endif
+			Player.AuxVarSetFlt "*_TWNV_Phase" 2
+			Player.AuxVarErase "*_TWNV_ActivationStarted"
+		else
+			; Smoothstep keeps the wave readable near the centre and screen edge.
+			fRingProgress = fRingProgress * fRingProgress * (3 - (2 * fRingProgress))
+			SetUIFloat "HUDMainMenu\TheWorldNV\_TWNVProgress" fRingProgress
+		endif
+	endif
+
+End

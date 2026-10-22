@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{42A81D17-A212-4ACD-B6B4-66AA43A09762}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>TheWorldNV</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <OutDir>$(ProjectDir)bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Configuration)\</IntDir>
+    <TargetName>TheWorldNV</TargetName>
+    <!-- Keep an explicitly supplied property first, then try known local layouts. -->
+    <XNVSE_ROOT Condition="'$(XNVSE_ROOT)'=='' and Exists('$(ProjectDir)..\..\third_party\xNVSE\nvse\nvse\prefix.h')">$(ProjectDir)..\..\third_party\xNVSE</XNVSE_ROOT>
+    <XNVSE_ROOT Condition="'$(XNVSE_ROOT)'=='' and Exists('$(LOCALAPPDATA)\Temp\tw_nvse_research\xNVSE\nvse\nvse\prefix.h')">$(LOCALAPPDATA)\Temp\tw_nvse_research\xNVSE</XNVSE_ROOT>
+    <!-- Normalize either accepted input to the repository root. Both the root
+         and root\nvse are required: prefix.h includes common/IPrefix.h. -->
+    <XNVSERepository Condition="Exists('$(XNVSE_ROOT)\common\IPrefix.h')">$(XNVSE_ROOT)</XNVSERepository>
+    <XNVSERepository Condition="'$(XNVSERepository)'=='' and Exists('$(XNVSE_ROOT)\..\common\IPrefix.h')">$([System.IO.Path]::GetFullPath('$(XNVSE_ROOT)\..'))</XNVSERepository>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(XNVSERepository);$(XNVSERepository)\nvse;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;RUNTIME;RUNTIME_VERSION=0x040020D0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ForcedIncludeFiles>nvse/prefix.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
+      <WarningLevel>Level4</WarningLevel>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>false</DataExecutionPrevention>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <Target Name="CheckXNVSEHeaders" BeforeTargets="ClCompile">
+    <Error Condition="'$(XNVSE_ROOT)'==''" Text="XNVSE_ROOT is not defined. Set it to the xNVSE repository root (the directory containing nvse\nvse\prefix.h)." />
+    <Error Condition="'$(XNVSE_ROOT)'!='' and '$(XNVSERepository)'==''" Text="XNVSE_ROOT='$(XNVSE_ROOT)' is not an xNVSE source tree. Expected common\IPrefix.h beside nvse, or in its parent directory." />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

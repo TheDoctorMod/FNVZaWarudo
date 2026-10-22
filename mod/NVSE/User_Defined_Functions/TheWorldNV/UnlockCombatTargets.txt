@@ -1,0 +1,16 @@
+Begin Function {}
+	; AuxVarGetAsArr does not return an array when the variable has not been
+	; created yet (or when the last stored array was empty). Never pass that
+	; missing value directly to ForEach.
+	if (Player.AuxVarSize "*_TWNV_LockedTargets") > 0
+		array_var aLocked = Player.AuxVarGetAsArr "*_TWNV_LockedTargets"
+		foreach array_var aEntry <- aLocked
+			ref rActor = *aEntry
+			if IsFormValid rActor
+				rActor.SetCombatDisabled 0
+			endif
+		loop
+		aLocked = ar_null
+	endif
+	Player.AuxVarErase "*_TWNV_LockedTargets"
+End

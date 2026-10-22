@@ -1,0 +1,27 @@
+Begin Function {}
+	if Player.AuxVarGetFlt "*_TWNV_WaitingForHitReplay" == 0
+		Return
+	endif
+	Player.AuxVarErase "*_TWNV_WaitingForHitReplay"
+
+	; A rapid reactivation owns its own concealment and target set already.
+	if Player.AuxVarGetFlt "*_TWNV_Active"
+		Return
+	endif
+
+	float fGraceSeconds = GetINIFloat "Perception:fPostResumeHiddenSeconds" "TheWorldNV.ini"
+	if fGraceSeconds <= 0
+		Player.ForceActorDetectionValue 0
+		Player.AuxVarErase "*_TWNV_DetectionSuppressed"
+		Call (CompileScript "TheWorldNV\UnlockCombatTargets.txt")
+		Return
+	endif
+
+	; HitMe has now attributed every queued attack to Player. Rebuild the lock
+	; list so witnesses made hostile by a frozen-time kill cannot redirect their
+	; aggression toward an unrelated actor when Player vanishes again.
+	Call (CompileScript "TheWorldNV\LockCombatTargets.txt")
+	Player.ForceActorDetectionValue -10000
+	Player.AuxVarSetFlt "*_TWNV_DetectionSuppressed" 1
+	Player.AuxVarSetFlt "*_TWNV_DetectionGraceUntil" ((GetTimePlayed 1) + fGraceSeconds)
+End

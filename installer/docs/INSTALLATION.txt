@@ -1,0 +1,13 @@
+THE WORLD NV - FOMOD INSTALLATION
+
+1. Install the folder or its archive with Mod Organizer 2 or another FOMOD-capable manager.
+2. On "Choose Your Voice", select exactly one voice configuration.
+3. On "Gameplay Settings", select exactly one gameplay preset.
+4. Keep The World NV enabled with its existing xNVSE, JIP LN NVSE, JohnnyGuitar NVSE, and UIO requirements.
+5. Start a new game session after changing a preset; gameplay values are cached when the game process starts.
+
+The default hotkey is H. Press H to stop time and press H again to resume early.
+
+The package installs shared scripts, DLL, UI, textures, and the resume/No Voice cues from 00 Core. A character option installs only its selected activation WAV and configuration. Gameplay choices install only their gameplay configuration, so the two pages remain independent.
+
+No original Fallout: New Vegas files or Mod Organizer 2 profiles are modified by this package.

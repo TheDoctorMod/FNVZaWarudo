@@ -1,0 +1,48 @@
+Begin Function {int bKeepDetectionGrace}
+	if Player.AuxVarGetFlt "*_TWNV_DetectionSuppressed"
+		float fGraceSeconds = GetINIFloat "Perception:fPostResumeHiddenSeconds" "TheWorldNV.ini"
+		if bKeepDetectionGrace && fGraceSeconds > 0
+			; Keep concealment through unfreeze. The DLL synchronously dispatches
+			; BeforeHitsReplayed immediately before HitMe and HitsReplayed immediately
+			; afterward, so no AI frame can observe Player's new position.
+			Player.AuxVarErase "*_TWNV_DetectionGraceUntil"
+			Player.AuxVarSetFlt "*_TWNV_WaitingForHitReplay" 1
+		else
+			Player.ForceActorDetectionValue 0
+			Player.AuxVarErase "*_TWNV_DetectionSuppressed"
+			Player.AuxVarErase "*_TWNV_DetectionGraceUntil"
+			Player.AuxVarErase "*_TWNV_WaitingForHitReplay"
+			Call (CompileScript "TheWorldNV\UnlockCombatTargets.txt")
+		endif
+	endif
+
+	if Player.AuxVarGetFlt "*_TWNV_TravelControlsDisabled"
+		EnablePlayerControlsAltEx 28672
+		Player.AuxVarErase "*_TWNV_TravelControlsDisabled"
+	endif
+
+	if Player.AuxVarGetFlt "*_TWNV_CharacterInteractionBlocked"
+		SetInteractionDisabledType 0 59
+		Player.AuxVarErase "*_TWNV_CharacterInteractionBlocked"
+	endif
+	if Player.AuxVarGetFlt "*_TWNV_CreatureInteractionBlocked"
+		SetInteractionDisabledType 0 60
+		Player.AuxVarErase "*_TWNV_CreatureInteractionBlocked"
+	endif
+
+	if Player.AuxVarGetFlt "*_TWNV_AudioFrozen"
+		SetGameVolume 2 (Player.AuxVarGetFlt "*_TWNV_VoiceVolume")
+		SetGameVolume 4 (Player.AuxVarGetFlt "*_TWNV_MusicVolume")
+		SetGameVolume 5 (Player.AuxVarGetFlt "*_TWNV_RadioVolume")
+		if Player.AuxVarGetFlt "*_TWNV_MusicPaused" && IsMusicPlaying == 1
+			SetMusicState 2
+		endif
+	endif
+
+	Player.AuxVarErase "*_TWNV_AudioFrozen"
+	Player.AuxVarErase "*_TWNV_MusicPaused"
+	Player.AuxVarErase "*_TWNV_VoiceVolume"
+	Player.AuxVarErase "*_TWNV_MusicVolume"
+	Player.AuxVarErase "*_TWNV_RadioVolume"
+	Player.AuxVarErase "*_TWNV_WorldFrozen"
+End

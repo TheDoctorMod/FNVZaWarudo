@@ -1,0 +1,8 @@
+Begin Function {}
+	DispatchEvent "TheWorldNV:DiscardHitQueue"
+	if Player.AuxVarGetFlt "*_TWNV_Active"
+		Call (CompileScript "TheWorldNV\Stop.txt") 0
+	else
+		Call (CompileScript "TheWorldNV\RestoreWorld.txt") 0
+	endif
+End

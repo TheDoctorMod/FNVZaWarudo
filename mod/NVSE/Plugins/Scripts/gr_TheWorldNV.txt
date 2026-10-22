@@ -1,0 +1,27 @@
+; The World NV - session bootstrap.
+; JIP LN runs gr_ scripts once when the game process starts.
+
+ref rTWMain = CompileScript "TheWorldNV\MainLoop.txt"
+ref rTWDoor = CompileScript "TheWorldNV\OnActivate.txt"
+ref rTWExit = CompileScript "TheWorldNV\OnExitToMainMenu.txt"
+ref rTWBeforeHitsReplayed = CompileScript "TheWorldNV\OnBeforeHitsReplayed.txt"
+ref rTWHitsReplayed = CompileScript "TheWorldNV\OnHitsReplayed.txt"
+
+; Gameplay preset values are supplied by the FOMOD and cached for this session.
+Player.AuxVarSetFlt "*_TWNV_Unlimited" (GetINIFloat "Gameplay:bUnlimited" "TheWorldNVGameplay.ini")
+Player.AuxVarSetFlt "*_TWNV_MAX_TIME_STOP_DURATION" (GetINIFloat "Gameplay:fMaxTimeStopDuration" "TheWorldNVGameplay.ini")
+Player.AuxVarSetFlt "*_TWNV_AP_DRAIN_PER_SECOND" (GetINIFloat "Gameplay:fAPDrainPerSecond" "TheWorldNVGameplay.ini")
+Player.AuxVarSetFlt "*_TWNV_TIME_STOP_COOLDOWN" (GetINIFloat "Gameplay:fTimeStopCooldown" "TheWorldNVGameplay.ini")
+Player.AuxVarSetFlt "*_TWNV_DISABLE_AP_REGEN" (GetINIFloat "Gameplay:bDisableAPRegeneration" "TheWorldNVGameplay.ini")
+Player.AuxVarSetFlt "*_TWNV_STATE_READY" 0
+Player.AuxVarSetFlt "*_TWNV_STATE_ACTIVE" 1
+Player.AuxVarSetFlt "*_TWNV_STATE_COOLDOWN" 2
+Player.AuxVarSetFlt "*_TWNV_State" 0
+
+SetGameMainLoopCallback rTWMain 1 1 3
+SetEventHandler "OnActivate" rTWDoor
+SetEventHandler "ExitToMainMenu" rTWExit
+SetEventHandler "TheWorldNV:BeforeHitsReplayed" rTWBeforeHitsReplayed
+SetEventHandler "TheWorldNV:HitsReplayed" rTWHitsReplayed
+
+Print "The World NV initialized. Default hotkey: H."

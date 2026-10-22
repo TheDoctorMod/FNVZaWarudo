@@ -1,0 +1,49 @@
+<rect name="TheWorldNV">
+	<!-- Script-driven 0..1 activation progress. Zero hides the complete branch. -->
+	<_TWNVProgress> 0 </_TWNVProgress>
+	<_TWNVAlpha> 235 </_TWNVAlpha>
+	<_TWNVScreenMax>
+		<copy src="screen()" trait="width"/>
+		<max src="screen()" trait="height"/>
+	</_TWNVScreenMax>
+	<_TWNVSize>
+		<copy src="me()" trait="_TWNVScreenMax"/>
+		<mul> 1.65 </mul>
+		<mul src="me()" trait="_TWNVProgress"/>
+		<max> 24 </max>
+	</_TWNVSize>
+	<x>
+		<copy src="screen()" trait="width"/>
+		<div> 2 </div>
+	</x>
+	<y>
+		<copy src="screen()" trait="height"/>
+		<div> 2 </div>
+	</y>
+	<locus> &true; </locus>
+	<visible>
+		<copy src="me()" trait="_TWNVProgress"/>
+		<gt> 0 </gt>
+	</visible>
+	<systemcolor> 0 </systemcolor>
+	<depth> 100 </depth>
+
+	<image name="ActivationRing">
+		<filename>Interface\TheWorldNV\activation_ring.dds</filename>
+		<zoom> &scale; </zoom>
+		<width> <copy src="parent()" trait="_TWNVSize"/> </width>
+		<height> <copy src="parent()" trait="_TWNVSize"/> </height>
+		<x> <copy src="me()" trait="width"/> <div> -2 </div> </x>
+		<y> <copy src="me()" trait="height"/> <div> -2 </div> </y>
+		<alpha>
+			<copy> 1 </copy>
+			<sub src="parent()" trait="_TWNVProgress"/>
+			<mul> 0.72 </mul>
+			<add> 0.28 </add>
+			<mul src="parent()" trait="_TWNVAlpha"/>
+		</alpha>
+		<red> 255 </red>
+		<green> 220 </green>
+		<blue> 105 </blue>
+	</image>
+</rect>

@@ -1,0 +1,15 @@
+Begin Function {}
+	if Player.AuxVarGetFlt "*_TWNV_Unlimited" || (Player.AuxVarGetFlt "*_TWNV_TIME_STOP_COOLDOWN") <= 0
+		Player.AuxVarSetFlt "*_TWNV_State" (Player.AuxVarGetFlt "*_TWNV_STATE_READY")
+		Player.AuxVarErase "*_TWNV_CooldownUntil"
+		Player.AuxVarErase "*_TWNV_ActiveElapsed"
+		Player.AuxVarErase "*_TWNV_ActiveLastUpdate"
+		Player.AuxVarErase "*_TWNV_APRemaining"
+		Return
+	endif
+	Player.AuxVarSetFlt "*_TWNV_State" (Player.AuxVarGetFlt "*_TWNV_STATE_COOLDOWN")
+	Player.AuxVarSetFlt "*_TWNV_CooldownUntil" ((GetTimePlayed 1) + (Player.AuxVarGetFlt "*_TWNV_TIME_STOP_COOLDOWN"))
+	Player.AuxVarErase "*_TWNV_ActiveElapsed"
+	Player.AuxVarErase "*_TWNV_ActiveLastUpdate"
+	Player.AuxVarErase "*_TWNV_APRemaining"
+End
